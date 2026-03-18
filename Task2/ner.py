@@ -20,7 +20,6 @@ class AnimalNER:
         ).to(self.device)
 
     def _tokenize_and_align_labels(self, examples):
-        """Метод для вирівнювання токенів BERT із нашими BIO-тегами."""
         tokenized_inputs = self.tokenizer(
             examples["tokens"], truncation=True, is_split_into_words=True
         )
@@ -31,25 +30,23 @@ class AnimalNER:
             label_ids = []
             for word_idx in word_ids:
                 if word_idx is None:
-                    label_ids.append(-100)  # Ігноруємо спеціальні токени [CLS], [SEP]
+                    label_ids.append(-100)
                 elif word_idx != previous_word_idx:
                     label_ids.append(label[word_idx])
                 else:
-                    label_ids.append(-100)  # Ігноруємо частини розбитих слів
+                    label_ids.append(-100)
                 previous_word_idx = word_idx
             labels.append(label_ids)
         tokenized_inputs["labels"] = labels
         return tokenized_inputs
 
     def train(self, json_data, output_dir="./ner_results", epochs=3):
-        # 1. Підготовка даних
         raw_dataset = Dataset.from_list(json_data)
         tokenized_dataset = raw_dataset.map(self._tokenize_and_align_labels, batched=True)
 
-        # 2. Налаштування навчання
         training_args = TrainingArguments(
             output_dir=output_dir,
-            evaluation_strategy="no",
+            eval_strategy="no",
             learning_rate=2e-5,
             per_device_train_batch_size=16,
             num_train_epochs=epochs,
@@ -64,8 +61,7 @@ class AnimalNER:
             model=self.model,
             args=training_args,
             train_dataset=tokenized_dataset,
-            data_collator=data_collator,
-            tokenizer=self.tokenizer,
+            data_collator=data_collator
         )
 
         trainer.train()
